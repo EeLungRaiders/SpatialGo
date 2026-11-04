@@ -33,6 +33,9 @@ Open `https://<host>:13931/gogame/gogame.htm`. The certificate names localhost, 
 
 ## The game
 
+**Demo video**(點圖播放)
+[![▶️  SpatialGo demo on YouTube](https://img.youtube.com/vi/kvXEUhyT3iM/maxresdefault.jpg)](https://www.youtube.com/watch?v=kvXEUhyT3iM)
+
 Two players share one seat. The default board is a 4×4×4 cube. Each axis can be set from 1 to 9, so the board can be a cuboid. A stone's liberties are its six orthogonal neighbours.
 
 兩人坐在一起下。預設棋盤是 4×4×4 立方體。每一軸可設為 1 到 9，因此棋盤可以是長方體。一子的氣是正交方向上的六個鄰居。
