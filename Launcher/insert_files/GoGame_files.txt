@@ -1,0 +1,22 @@
+# 舊參考，已不使用：sgf.js、sgf_cases.js、board2d.js 仍複製，專頁與 AutoLoad 不載入。
+${WORKDIR}/GoGame/client/loader/go_loader.js ${JSROOTSYS}/scripts/go_loader.js
+${WORKDIR}/GoGame/client/core/state.js ${JSROOTSYS}/scripts/go_state.js
+${WORKDIR}/GoGame/client/core/coords.js ${JSROOTSYS}/scripts/go_coords.js
+${WORKDIR}/GoGame/client/core/rules.js ${JSROOTSYS}/scripts/go_rules.js
+${WORKDIR}/GoGame/client/core/scoring.js ${JSROOTSYS}/scripts/go_scoring.js
+${WORKDIR}/GoGame/client/core/record.js ${JSROOTSYS}/scripts/go_record.js
+${WORKDIR}/GoGame/client/tests/rules_cases.js ${JSROOTSYS}/scripts/go_rules_cases.js
+${WORKDIR}/GoGame/client/tests/coords_cases.js ${JSROOTSYS}/scripts/go_coords_cases.js
+${WORKDIR}/GoGame/client/core/sgf.js ${JSROOTSYS}/scripts/go_sgf.js
+${WORKDIR}/GoGame/client/tests/sgf_cases.js ${JSROOTSYS}/scripts/go_sgf_cases.js
+${WORKDIR}/GoGame/client/tests/scoring_cases.js ${JSROOTSYS}/scripts/go_scoring_cases.js
+${WORKDIR}/GoGame/client/tests/record_cases.js ${JSROOTSYS}/scripts/go_record_cases.js
+${WORKDIR}/GoGame/client/render/view_mode.js ${JSROOTSYS}/scripts/go_view_mode.js
+${WORKDIR}/GoGame/client/render/board2d.js ${JSROOTSYS}/scripts/go_board2d.js
+${WORKDIR}/GoGame/client/render/board3d.js ${JSROOTSYS}/scripts/go_board3d.js
+${WORKDIR}/GoGame/client/tests/clip_cases.js ${JSROOTSYS}/scripts/go_clip_cases.js
+${WORKDIR}/GoGame/client/render/controller.js ${JSROOTSYS}/scripts/go_render_ctrl.js
+${WORKDIR}/GoGame/client/ui/controller.js ${JSROOTSYS}/scripts/go_ui.js
+${WORKDIR}/GoGame/html/gogame.htm ${JSROOTSYS}/files/gogame.htm
+${WORKDIR}/GoGame/client/core/budget.js ${JSROOTSYS}/scripts/go_budget.js
+${WORKDIR}/GoGame/client/tests/budget_cases.js ${JSROOTSYS}/scripts/go_budget_cases.js

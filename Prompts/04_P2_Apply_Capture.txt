@@ -1,0 +1,139 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再 docker / podman 套遊戲映像。
+不能開瀏覽器就改碼；不能以「打不開頁面」為由改架構。
+驗收寫成手動步驟，不要假裝已在瀏覽器點過。
+不要把公開模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：04
+階段：P2 Apply — 只做提子／自殺／簡單劫／Pass／Resign／ended
+先 diff、等人採用才改工作樹
+
+準據（已批准）
+  Plans/03_P2_Capture.md
+    1 批准；2 先提對方再判自殺；3 phase='ended' 且不計分
+  Plans/03_1_UserCoords.md
+    1 批准偶數「奇數座標、間距 2、無中心點」
+    2 接受對 03 的修訂
+    3 座標轉換等 05，本 04 不做
+  補充（使用者 03_1 後確認）：
+    以後若做奇數 N，幾何中心 (0,0,0) 是交叉點、可落子。
+    第一版仍鎖 N=4，04 不實作奇數盤、不做 toUser／fromUser。
+
+============================================================
+0. 開頭必做：diff-change-workflow
+============================================================
+
+先讀並遵循 Skills/diff-change-workflow/SKILL.md
+（目錄名略有出入就在 Skills/ 搜 diff-change）。
+
+報告寫明 skill 完整路徑與步驟。沒找到就停，問使用者，不准自創流程、不准改程式。
+
+本專案步驟：
+  A  對齊檔案清單（本檔 §5）
+  B  unified diff → Prompts/patches/（可 reverse；無 move 則檔頭註明「無 move」）
+  C  停住問「可以套用？」  未得到前禁止改工作樹
+  D  小→大 apply
+  E  大→小 reverse；.diff 留在 Prompts/patches/，套完不刪
+
+建議 patch 名：
+  已移除（原 Prompts/patches/04_P2_Apply_Capture_semantic.diff）
+可按檔拆，但要有總清冊。
+回覆貼出 diff 原文與 apply／reverse 指令。
+
+同一輪執行本 Prompt 時，預設只做到 C。不要把「寫 04」當成已批准套用。
+
+============================================================
+1. 本 Phase 做／不做
+============================================================
+
+做
+- rules.js：play 先提對方無氣塊，再判自殺；簡單劫；isLegal 同一套試放
+- pass → passCount>=2 則 phase='ended'（不是 scoring）；不呼叫 scoring.js
+- Resign 維持 finished＋對方勝；UI 顯示 Pass／Resign
+- rules_cases.js：03 §7 向量，全部內部 index 0..3
+- UI Message：capture／suicide／ko／雙方停手（計分延後）
+- ended 與 finished 都不能再 play
+- AGENTS.md／README.md 規則段對齊 P2（仍寫內部座標；顯示制指向 03_1／05）
+- go-rules-engine skill 可另附小 diff 或同一堆疊末段；不要和 rules.js 綁成不可讀巨檔
+
+不做
+- toUser／fromUser、fmtPoint 改成 {-3,-1,1,3}、軸刻字改顯示制
+- 改 worldOf／CELL／球半徑；board 負下標
+- SGF、計分、死子、領地、切層 2D
+- 改 board3d 幾何／picking；增量刪 mesh
+- 刪 board2d.js；改 SetSV.C／insert_files
+- Firefox New Game 相機
+- 奇數 N 盤面
+
+3D：state 變了走現況 afterStateChange → redraw／drawAll。
+提子消失與 Undo 回補都靠全量重建 extras。
+
+============================================================
+2. play 順序（照抄已批准的 03 §2.2）
+============================================================
+
+clone 上做；失敗回傳原局面。
+
+1. 拒：非 playing、越界、非空
+2. 試放
+3. 先移除落點六鄰對方氣盡塊（可多塊）
+4. 己方塊無氣且 captured.length===0 → 撤回，illegal suicide
+5. captured.length===1 且落點等於 koPoint → 撤回，illegal ko recapture
+6. 只提 1 子且己方該塊恰好 1 子 → koPoint=被提格；否則 null
+7. passCount=0；history 含 z 與 captured；換手
+
+六鄰只走內部 DIRS ±1。不要用顯示座標 ±2 做 flood fill。
+
+============================================================
+3. cases 圍子補齊（內部 index；03 §7 沒寫死的部分）
+============================================================
+
+C2 黑 play(0,0,1) 同時提 (0,0,0) 與 (0,0,2)，布置須含：
+  白 (0,0,0) (0,0,2)
+  黑 (1,0,0) (0,1,0) (1,0,2) (0,1,2) (0,0,3)
+
+S2 黑 play(0,0,0) 提白 (1,0,0)，布置須含：
+  白 (1,0,0)
+  黑 (2,0,0) (1,1,0) (1,0,1)
+  （白只剩氣 (0,0,0)）
+
+K1／K2 用 03 §3.1 原表。L／C1／S 依 03 §7。
+全部禁止 board[y][x]。
+
+============================================================
+4. UI
+============================================================
+
+- 顯示並啟用 Pass、Resign
+- ended／finished：Place 與點格都不下子
+- Message 可暫印內部 (x,y,z)；不要在 04 做顯示制
+- 不接 scoring.js／SGF／領地
+
+============================================================
+5. 將改檔案
+============================================================
+
+必改
+- Program_Go/GoGame/client/core/rules.js
+- Program_Go/GoGame/client/tests/rules_cases.js
+- Program_Go/GoGame/client/ui/controller.js
+- AGENTS.md、README.md（規則段）
+
+視讀碼
+- client/core/state.js 僅當 ended undo 回 playing 需要
+
+不改
+- board3d.js、board2d.js、worldOf、gogame.htm 的 script 清單（除非 Pass 鈕只靠 CSS）
+- SetSV.C、insert_files、scoring.js、sgf.js
+- 不新增 coords.js（那是 05）
+
+============================================================
+6. 結束
+============================================================
+
+採用前：skill 路徑、patch 總清冊、可 reverse、問「可以套用？」
+採用後才 Step D，留下 apply 紀錄。
+
+手動驗收：Plans/03_P2_Capture.md §8。
+座標對人是否好讀：不在本驗收；等 05。

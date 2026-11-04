@@ -1,0 +1,161 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再 docker / podman 套遊戲映像。
+不能開瀏覽器就改碼；不能以「打不開頁面」為由改架構。
+驗收寫成手動步驟，不要假裝已在瀏覽器點過。
+不要把公開模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：03
+階段：P2 Plan（只寫計畫。禁止改程式、禁止寫 patch、禁止開始實作提子）
+
+已完成
+- P0 盤點：Reports/00_P0_ReadOnly_Audit.md
+- P1 Plan／批准／Apply：Plans/01_P1_SpatialGo_4x4x4.md
+  已移除（原 Prompts/01_1_P1_Plan_Approval.md）
+  Prompts/02_P1_Apply_SpatialGo_4x4x4.txt
+- P1 手測（Chrome）通過：4×4×4 立方格可點、可下、Undo／Reset／Reload 可用
+- 已知非本 Phase：Firefox 在 New Game 後相機／controls 目標異常，
+  Reset View 可恢復。那是 framing，另開 02_1 或更後小修，03 不准夾帶。
+
+============================================================
+0. 允許／禁止
+============================================================
+
+允許
+- 讀現況 P1 程式與 P1 Plan
+- 新建 Plans/03_P2_Capture.md
+
+禁止
+- 改 Program_Go、Launcher、client、SetSV、HTML、AGENTS、README
+- 新建 Prompts/patches 或 apply
+- 做切層 2D、SGF、計分、死子標記、領地 overlay
+- 修 Firefox New Game 相機
+- 新 C++ class、改 SetSV.C、套映像
+- 常駐 wrap drawExtraShape、改 select_in_view、裸 TGeoBBox main draw
+
+結束條件
+寫完 Plans/03_P2_Capture.md 後停止，用是非題請使用者批准。
+未批准不得寫 04 apply。
+
+============================================================
+1. 先讀
+============================================================
+
+必讀
+- Plans/01_P1_SpatialGo_4x4x4.md §3（P1／P2 分界）
+- 已移除（原 Prompts/01_1_P1_Plan_Approval.md）
+- Program_Go/GoGame/client/core/state.js
+- Program_Go/GoGame/client/core/rules.js
+- Program_Go/GoGame/client/tests/rules_cases.js
+- Program_Go/GoGame/client/render/board3d.js
+  （確認加子／Undo 仍是同一條 redraw → extras；提子必須走這條）
+- Program_Go/GoGame/client/ui/controller.js
+  （Pass／Resign 現況隱藏或 disabled）
+
+約束（只讀）
+- Reports/00_P0_ReadOnly_Audit.md 的 extras／Reset 段落
+
+平面舊 rules.js 可當「提子順序／自殺／簡單劫」的語意參考，
+但鄰接必須是六鄰，座標必須有 z，禁止搬回 board[y][x]。
+
+============================================================
+2. 已鎖定（不得在 Plan 裡改掉）
+============================================================
+
+- 4×4×4；board[z][y][x]；SIZE=4
+- 氣與連：六鄰 ±x ±y ±z，不連對角
+- 只有 3D 立方格；規則在 JS；SV 純殼
+- 子的顯示真相仍是 state；提子 = state 拿掉 + 同一條 extras 全量重建
+- P2 仍然不做：SGF、計分、死子標記、領地、切層 2D
+- 兩次 Pass 不得自動進計分畫面
+
+============================================================
+3. Plan 必須寫清的規則
+============================================================
+
+3.1 塊與氣
+- getGroup(state, x,y,z)：同色、六鄰 flood fill
+- getLiberties(group)：塊上所有六鄰空點（去重）
+- 空點／越界不是氣
+
+3.2 play 順序（必須寫成步驟，避免先自殺再提的歧義）
+建議預設（可駁，但須選一個並寫測試向量）：
+
+  1. 拒：不在 playing、越界、非空
+  2. 試放子
+  3. 先算並移除「對方」氣盡的塊（可多塊）
+  4. 再看己方落子所在塊是否還有氣
+     - 無氣且本次提子數為 0 → 撤回試放，自殺禁
+     - 無氣但有提子 → 合法（提劫／提後開氣）
+  5. 簡單劫：若本次只提 1 子、且落點等於 state.koPoint → 拒（撤回）
+  6. 更新 koPoint：
+     - 若本次「只提 1 子、且落子後己方該塊恰好 1 子」→ koPoint = 被提的那格
+     - 否則 koPoint = null
+  7. 記 history（含 z、captured 座標列表）、換手、capturedBlack／White 累加
+
+3.3 簡單劫（P2 只做這個）
+- 禁止立即回填上一手的單提點。
+- 不做超劫、連環劫、全域重複局面。
+- Plan 裡用 4×4×4 寫一組最小劫循環座標當驗收（角或稜即可，不要用平面 19 路圖）。
+
+3.4 Pass／Resign
+- UI 可打開 Pass、Resign。
+- Pass：換手、passCount+1、koPoint 清空；不進 scoring。
+- 連續兩 Pass：phase 可標 'ended'，Message 寫「雙方停手（計分延後）」；
+  不呼叫 scoring.js、不畫領地。
+- Resign：對方勝；不計目。
+- Undo：還原子、被提子、toPlay、koPoint、phase；3D 必須跟 state。
+
+3.5 3D
+- 禁止為提子做增量刪 mesh。
+- 落子／提子／Undo／Pass 後凡 state.board 變了，都走現況 redraw／drawAll。
+- Reset view 約束不變。
+- 不要動 picking 主方案（除非發現提子後 hit 點錯；本 Plan 預設不改 picking）。
+
+3.6 測試
+- 改寫 rules_cases.js：六鄰連塊、單子被六鄰圍提、雙塊同手並提、
+  自殺拒、提後自殺變合法、簡單劫拒、劫隔一手可回、Pass×2 不進計分。
+- 必須含至少一組「角點／稜上氣數」向量（角 3、稜 4、面 5、內 6），
+  避免用平面直覺寫錯測試。
+
+============================================================
+4. 檔案分派（計畫表，不是 diff）
+============================================================
+
+預期會動
+- client/core/rules.js     # 主戰場
+- client/core/state.js     # 若 play 已在 rules；只補 history／ko／captured 語意
+- client/tests/rules_cases.js
+- client/ui/controller.js  # 打開 Pass／Resign；Message 提子數／劫
+- AGENTS.md、README.md 的規則段（Plan 裡寫意圖，本階段不動檔）
+
+預期不改或只順手對文案
+- board3d.js（不改幾何／picking；提子靠既有 redraw）
+- board2d.js 仍不載入、不刪
+- SetSV.C、insert_files、GoGame.cpp
+- scoring.js／sgf.js
+
+若讀碼後發現 play 不在 rules 而在 UI，Plan 裡改分派，不要把規則寫進 UI。
+
+============================================================
+5. 交付
+============================================================
+
+只交 Plans/03_P2_Capture.md，結構固定：
+
+1. 目標與非目標（含：不修 Firefox 相機、不計分）
+2. 塊／氣／play 順序
+3. 簡單劫定義與一組 4×4×4 例題座標
+4. Pass／Resign／ended 而不計分
+5. 3D 同步（沿用 redraw）
+6. 檔案分派表
+7. rules_cases 向量清單
+8. 手動驗收步驟
+9. 建議下一份檔名：Prompts/04_P2_Apply_Capture.txt
+   （apply 仍走 diff-change-workflow：先 patch、可 reverse、批准才套）
+10. 是非題：
+    - 是否批准本 Plan？
+    - play 順序是否用 §3.2 預設（先提對方再判自殺）？
+    - 兩 Pass 用 'ended' 且不計分，可以嗎？
+
+寫完即停。不要 apply。

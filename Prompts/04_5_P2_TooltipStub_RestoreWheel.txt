@@ -1,0 +1,59 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再套遊戲映像。不能開瀏覽器就改碼。
+不要把模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：04_5
+本檔即完整任務。diff-change-workflow 只做到 Step C；未說「可以套用」不准改樹。
+
+讀 Skills/diff-change-workflow/SKILL.md；找不到則停。
+
+前提
+- 不要 reverse 04／04_2。04_3／04_4 當現況改；本 diff 可單獨 reverse。
+- 不需要 JSROOT 浮層；落子資訊只走 Message。
+- 滾輪縮放必須回來。左鍵旋轉／右鍵平移已正常，不要拆掉。
+- 不改 rules.js、不做 05、不改 select_in_view、不常駐 wrap drawExtraShape、
+  不改 _clones.setMaxVisNodes、不改 JSROOT 套件檔。
+
+使用者現況
+1. mouseleave：
+   control.mainProcessMouseLeave → this.tooltip.hide
+   Cannot read properties of null (reading 'hide')
+   原因：tooltip=null。官方程式此處沒有 ?.（base3d.mjs 約 1290）。
+2. 滾輪放大縮小消失。左鍵／右鍵仍可用。
+   滾輪不是 tooltip：createOrbitControl 在 renderer.domElement 另綁 wheel
+   （settings.Zooming && settings.ZoomWheel）。
+   假設：04_2／04_3 對 domElement removeEventListener 或重綁 controls 時
+   弄丟 wheel／enableZoom。請讀碼證實。
+
+Step A — Reports/04_5_TooltipWheel.md 必答
+A. 現在 control.tooltip 是 null、官方物件，還是缺 hide 的 stub？
+B. wheel 監聽現在綁在哪？enableZoom／ZoomWheel 現況？
+   誰在 mute／wipe 時摘掉 wheel？
+C. 修復：tooltip 用 { hide(){}, extract_pos(){ return null; } } 或官方 disable，
+   禁止再設 null。
+D. 如何在不恢復 resolveStack／浮層的前提下把 wheel 接回同一 renderer.domElement？
+
+允許
+- no-op tooltip 物件（方法齊）
+- 重新 addEventListener('wheel', JSROOT 原 handler) 或官方 enable zoom API
+- 整理 mute：只摘 mousemove 上的 resolveStack／tooltip，不要摘 wheel
+
+禁止
+- tooltip=null
+- 改 geobase.mjs／base3d.mjs 套件
+- 為了修 wheel 打開 TGeo highlight／select_in_view
+
+Step B
+  已移除（原 Prompts/patches/04_5_TooltipWheel_semantic.diff）
+只預期改 board3d.js。可 git apply 與 -R。
+
+Step C
+貼結論、diff、apply／reverse，問可以套用？停止。
+
+驗收（使用者自測）
+1. 滑入／離開 3D：無 hide／extract_pos error。
+2. 滾輪可縮放立方體；左鍵轉、右鍵移仍在。
+3. 無浮層也可以（不需要 tooltip 文字）。
+4. capture 後球仍消失；Message 仍可用。
+5. resolveStack 若還在，報告標「非 04_5 必清」，不要為它改規則。

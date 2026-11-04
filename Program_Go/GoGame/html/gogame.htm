@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>立體空間圍棋 — JSROOT</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: sans-serif;
+      background: #f5f5f5;
+    }
+    #go-page-chrome {
+      box-sizing: border-box;
+      height: 36px;
+      padding: 4px 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #1a1a1a;
+      color: #f0f0f0;
+      font-size: 13px;
+      border-bottom: 1px solid #333;
+    }
+    #go-page-chrome a { color: #9cf; text-decoration: none; }
+    #go-page-chrome a:hover { text-decoration: underline; }
+    #go-page-chrome button {
+      cursor: pointer;
+      padding: 3px 10px;
+      font-size: 13px;
+      border: 1px solid #888;
+      border-radius: 4px;
+      background: #333;
+      color: #fff;
+    }
+    #go-page-chrome button:hover { background: #555; }
+    #go-app {
+      box-sizing: border-box;
+      height: calc(100vh - 36px);
+      min-height: 0;
+      width: 100%;
+      overflow: hidden;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <div id="go-page-chrome">
+    <strong>立體空間圍棋</strong>
+    <button type="button" id="go-reload" title="Reload this page">Reload</button>
+    <a href="/">Server</a>
+  </div>
+  <div id="go-app"></div>
+
+  <script type="module">
+    /**
+     * Dedicated spatial-Go page. Does not load board2d or SGF.
+     * Scoring and the Go3D record are loaded.
+     */
+    import * as JSROOT from "/jsrootsys/modules/main.mjs";
+    globalThis.JSROOT = JSROOT;
+
+    var GO_SCRIPTS = [
+      "/jsrootsys/scripts/serverlog.js",
+      "/jsrootsys/scripts/go_state.js",
+      "/jsrootsys/scripts/go_coords.js",
+      "/jsrootsys/scripts/go_rules.js",
+      "/jsrootsys/scripts/go_scoring.js",
+      "/jsrootsys/scripts/go_record.js",
+      "/jsrootsys/scripts/go_view_mode.js",
+      "/jsrootsys/scripts/go_board3d.js",
+      "/jsrootsys/scripts/go_clip_cases.js",
+      "/jsrootsys/scripts/go_budget.js",
+      "/jsrootsys/scripts/go_render_ctrl.js",
+      "/jsrootsys/scripts/go_ui.js",
+      "/jsrootsys/scripts/go_rules_cases.js",
+      "/jsrootsys/scripts/go_coords_cases.js",
+      "/jsrootsys/scripts/go_scoring_cases.js",
+      "/jsrootsys/scripts/go_record_cases.js",
+      "/jsrootsys/scripts/go_loader.js"
+    ];
+
+    function loadClassicScript(src) {
+      return new Promise(function (resolve, reject) {
+        var s = document.createElement("script");
+        s.src = src;
+        s.async = false;
+        s.onload = function () { resolve(src); };
+        s.onerror = function () { reject(new Error("Failed to load " + src)); };
+        document.head.appendChild(s);
+      });
+    }
+
+    document.getElementById("go-reload").addEventListener("click", function () {
+      location.reload();
+    });
+
+    try {
+      for (var i = 0; i < GO_SCRIPTS.length; i++) {
+        await loadClassicScript(GO_SCRIPTS[i]);
+      }
+      var host = document.getElementById("go-app");
+      if (!window.GoGame || !window.GoGame.UI || typeof window.GoGame.UI.mount !== "function") {
+        host.textContent = "GoGame.UI.mount missing — check script order / insert_files";
+        console.error("[gogame.htm] UI.mount missing after script load");
+      } else {
+        var controller = window.GoGame.UI.mount(host);
+        window.GoGame._boardController = controller;
+        window.GoGame._ui = controller;
+        if (window.GoGame.UI) window.GoGame.UI._api = controller;
+        console.log("[gogame.htm] mounted spatial Go page", {
+          version: window.GoGame.version,
+          phase: window.GoGame.phase,
+          size: window.GoGame.State && window.GoGame.State.SIZE
+        });
+      }
+    } catch (e) {
+      console.error("[gogame.htm] bootstrap failed", e);
+      var hostErr = document.getElementById("go-app");
+      if (hostErr) {
+        hostErr.style.padding = "16px";
+        hostErr.style.color = "crimson";
+        hostErr.textContent = "Bootstrap failed: " + (e && e.message ? e.message : e);
+      }
+    }
+  </script>
+</body>
+</html>

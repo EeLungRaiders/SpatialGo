@@ -1,0 +1,50 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再套遊戲映像。不能開瀏覽器就改碼。
+不要把模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：20
+檔名：Prompts/20_P9_Apply_ClipFade.txt
+階段：P9 Apply — 觀察窗 clip／fade
+
+本檔即完整任務。diff-change-workflow 只做到 Step C；未說「可以套用」不准改樹。
+讀 Skills/diff-change-workflow/SKILL.md；找不到則停。
+
+準據：Plans/19_P9_ClipFade.md
+使用者：1 批准；2 範圍外不可點；3 fade=0 不畫範圍外子。
+11 暫停／不做仍有效。不要 reverse 17／18。不要做切層 2D。
+
+============================================================
+0. 產品（不得改掉）
+============================================================
+
+- session.clip：x0,x1,y0,y1,z0,z1 內部 index；fade∈[0,1] 預設 0
+- 不是 state／不是 JSON 棋譜
+- UI：三軸 min/max（標籤 user 座標）＋ fade＋Show all（滿區間、fade 不變）
+- 範圍內實心；範圍外 fade=0 skip 球與空點；fade∈(0,1) 活子乘 alpha；範圍外死子不畫
+- 格線／外框整盤不隨 clip 重畫；軸永遠全長
+- picking 只吸附 inClip；範圍外不能 Place／標死
+- slider input 不 drawAll；change／pointerup 才 extras 重建（不要 clearDom）
+- New Game／Load／換尺寸 resetClipToFull；fade 維持
+- 不改 rules／scoring／record；不 wrap drawExtraShape；不改 select_in_view
+
+============================================================
+1. 檔案
+============================================================
+
+ui/controller.js、render/board3d.js、必要時 coords 軸轉換、短句 AGENTS／README。
+可選極小 clip helper 測試。不改 rules.js、state 欄位、record schema。
+
+============================================================
+2. Step B / C
+============================================================
+
+Patch：已移除（原 Prompts/patches/20_P9_ClipFade_semantic.diff）
+可 git apply 與 -R。問可以套用？停止。
+
+============================================================
+3. 驗收（套用後使用者自測）
+============================================================
+
+見 Plans/19 §8：C9／C0／Cshow／Cfade／Crec／Csize。
+另：拖滑桿時畫面不每格閃爍重建；鬆開才更新子。

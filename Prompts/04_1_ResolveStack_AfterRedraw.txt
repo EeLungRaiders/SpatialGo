@@ -1,0 +1,154 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再 docker / podman 套遊戲映像。
+不能開瀏覽器就改碼；不能以「打不開頁面」為由改架構。
+驗收寫成手動步驟，不要假裝已在瀏覽器點過。
+不要把公開模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：04_1
+檔名：Prompts/04_1_ResolveStack_AfterRedraw.txt
+
+本檔即完整任務。讀完按 §0→§6 執行。
+不要等使用者再補「先調查」「不要套用」——那些已寫在本檔。
+
+前提（不要再做）
+- 04 提子／自殺／簡單劫／ended 已在樹上，必須保留。
+- 舊 04_1 patch 使用者已 reverse。禁止再 reverse 任何 04 提子 diff。
+- 顯示座標（05）未做；著手紀錄仍是內部 0..3，這不是本 bug。
+
+已棄置：已移除（原 Prompts/_dropped/04_1_P2_NoRedrawOnIllegal.txt）
+（舊假設「只禁非法手重畫」已否證；該 patch 已 reverse。）
+本任務不要讀、不要套、不要再 reverse 該檔或其對應 patch。
+04 提子 patch 已移除（原 Prompts/patches/ 內 04 的 diff）。不要 reverse。
+
+============================================================
+0. 執行契約（必守）
+============================================================
+
+讀並遵循 Skills/diff-change-workflow/SKILL.md
+（路徑略有出入則在 Skills/ 搜 diff-change）。找不到 skill：停止，不准自創流程、不准改程式。
+
+本 Prompt 只做到 Step C，然後停止：
+
+  A  只讀調查，寫 Reports/04_1_ResolveStack.md
+  B  產出可 reverse 的 unified diff → Prompts/patches/
+  C  回覆貼 diff、apply／reverse 指令，問「可以套用？」
+
+未得到「可以套用」前禁止改 Program_Go、Launcher、HTML、AGENTS、README。
+禁止先改碼再補 diff。禁止把本檔當成已批准套用。
+
+============================================================
+1. 要修的現象
+============================================================
+
+不是「只有自殺手才壞」。合法第 2 手之後 mousemove 就會炸。
+卡住是因為每下移動都 throw，Orbit／picking 像死掉；
+Pass／Undo／Reset View 會再完整建 painter，所以能恢復。
+
+再現（內部 index；使用者已打過）：
+
+  1. B (3,0,3)
+  2. W (2,0,3)          ← 已出現 resolveStack
+  3. B (2,0,2)
+  4. W (3,0,2)
+  5. B (3,1,2)
+  6. W (3,1,3)          ← 應提掉角黑 (3,0,3)（三鄰皆白）
+     再點 (3,0,3)      ← 自殺拒（該格提子後應已空）
+  7. Pass
+
+錯誤（JSROOT 滑鼠，不是 Rules）：
+
+  ClonedNodes.resolveStack (geobase.mjs)
+  Cannot read properties of undefined (reading '0' 或 '1' 或 '2' 或 '3')
+    TGeoPainter.resolveStack
+    TGeoPainter.getStackFullName
+    #controls.processMouseMove
+    delayedProcessMouseMove / lstn_mousemove
+
+曾見 log：
+  [board3d] stoneExtras ok state=N tree=N mesh=0
+  facesBudget=2000000 nodesBudget=10000
+
+============================================================
+2. Step A — 只讀調查（先寫報告再寫 diff）
+============================================================
+
+必讀
+- Program_Go/GoGame/client/render/board3d.js
+- Program_Go/GoGame/client/render/controller.js
+- Program_Go/GoGame/client/ui/controller.js
+- Reports/00_P0_ReadOnly_Audit.md §5（extras／Reset；不再列舊檔名）
+
+Reports/04_1_ResolveStack.md 必須回答：
+
+A. 每一手 redraw 是否 clearDom 拆掉舊 TGeoPainter，但
+   lstn_mousemove 仍綁舊 control、highlight stack 仍指舊 clones？
+B. mesh=0：extras 沒進 scene，還是 log 數錯？有子時球從哪來？
+C. 自訂射線 picking 是否已足夠，因而 mousemove 不必再 resolveStack
+   （tooltip／highlight）？
+D. 禁用手段現在有沒有開著：常駐 drawExtraShape、
+   改 select_in_view、改 _clones.setMaxVisNodes？
+
+調查結論選一個主修法、一個備修法，再進入 Step B。
+
+============================================================
+3. 允許／禁止的修法
+============================================================
+
+允許
+- clearDom／換 painter 之前：摘 controls 的 mousemove／tooltip，
+  清 highlight stack；新 painter＋extras 掛完再掛 listener。
+- 用 painter 現成 API 關 tooltip／highlight
+  （例如 setTooltipAllowed(false) 或專案裡已有的等價呼叫），
+  讓 processMouseMove 不再 resolveStack。
+  這不是去改 select_in_view + 改 _clones 上限。
+- 有子時 mesh 不應長期為 0：對齊 P1 extras 高上限、
+  暫時 wrap drawExtraShape 後立刻還原。
+- 備：落子不 clearDom 整個 painter，只重建 extras 容器 "goStones"；
+  格線 painter 常駐。棋子真相源仍只有 state。
+
+禁止
+- 再 reverse 04 提子
+- 常駐 wrap drawExtraShape
+- 改 select_in_view、改 _clones.setMaxVisNodes 當修法
+- J.draw(stones) 當第二個 main
+- 裸 TGeoBBox 當唯一 JSROOT.draw；假設 THREE.BoxGeometry
+- 改提子／劫／ended 規則
+- 做 toUser／顯示座標、SGF、切層 2D
+- 把 Firefox New Game 相機當本題
+
+============================================================
+4. Step B — patch
+============================================================
+
+建議：
+  已移除（原 Prompts/patches/04_1_ResolveStack_semantic.diff）
+檔頭註明無 move（若無跨檔純搬移）。
+必須可用 git apply --whitespace=nowarn 與 git apply -R --whitespace=nowarn。
+
+預期會動：board3d.js，必要時 render/controller.js。
+不應改 rules.js（除非調查證明非法手仍誤觸 focusCamera；那也只改呼叫點，不改規則）。
+
+============================================================
+5. Step C — 停止並詢問
+============================================================
+
+回覆包含
+- skill 路徑
+- 報告路徑與 A–D 各一句結論
+- 主修法是哪一條
+- patch 路徑與 apply／reverse 指令
+- 完整 diff 原文（skill 若要求）
+- 最後一句：是否可以套用？
+
+然後停止。
+
+============================================================
+6. 套用後才由使用者做的驗收（寫進報告即可）
+============================================================
+
+1. 上述 1–6 手，每手後滑過立方體，無 resolveStack。
+2. 第 6 手後 (3,0,3) 黑球消失；再點該格拒自殺，仍可轉、無 throw。
+3. 有子時 stoneExtras 不應長期 mesh=0（若只是計數別名，改 log 並在報告說明）。
+4. Reset view 後子還在；console 無 resolveStack。
+5. 提子／劫／兩 Pass ended 與 04 相同。

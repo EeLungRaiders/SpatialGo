@@ -1,0 +1,60 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再套遊戲映像。不能開瀏覽器就改碼。
+不要把模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：12_1
+檔名：Prompts/12_1_P6_Apply_StoneColors.txt
+階段：P6 Apply — New Game 先手／後手外觀色（規則身分仍是 Black／White）
+
+本檔即完整任務。diff-change-workflow 只做到 Step C；未說「可以套用」不准改樹。
+讀 Skills/diff-change-workflow/SKILL.md；找不到則停。
+
+準據
+- Reports/12_0_StoneColors_Impact.md
+- 使用者：影響＝中；自訂色一律加深色輪廓；預設白保留現況陰影；
+  Message／棋譜仍 Black／White，不寫色名、不把 #rrggbb 寫進 JSON。
+- 11 暫停／不做清單仍有效。不要 reverse 04.x–10。
+
+============================================================
+0. 產品
+============================================================
+
+- State.BLACK／WHITE、誰先下、play／計分／record 的 "B"/"W" 不變
+- New Game 兩個 <input type="color">：First / Second（或 Black / White 外觀）
+- 一顆 Defaults：先手 GEO_RGBA_BLACK [0.06,0.06,0.06,1]；
+  後手 [1,1,1,1] + 現況 polish（DoubleSide、emissive 灰、intensity≥0.45）
+- 色在 New Game 生效；中局不要換色
+- 外觀放 session／UI 偏好，不要當 rules 欄位
+- polish 用「是否後手／節點 w*」或明確角色旗標，禁止再用「三通道≥0.9」當白
+
+自訂色（非 Defaults 白）
+- 一律加深色輪廓（深色 edge／線或暗 emissive，不要洗成亮白）
+- 兩色過近：拒絕換色或警告並維持上一組可用色；Defaults 必須可下
+
+死子：同一外觀色 alpha≈0.32。Hand 預覽跟兩色走。
+領地空點色不改公式；不必為換色重做著色，除非對比明顯壞掉再微調標記色（非本 Phase 必做）。
+
+============================================================
+1. 檔案
+============================================================
+
+預期：board3d.js（rgba、polish）、ui/controller.js（兩色盤、Defaults、Hand）、
+必要時極小 session 物件。不改 rules.js、record.js 的 B／W、scoring 公式。
+
+============================================================
+2. Step B / C
+============================================================
+
+Patch：已移除（原 Prompts/patches/12_1_StoneColors_semantic.diff）
+可 git apply 與 -R。問可以套用？停止。
+
+============================================================
+3. 驗收（套用後使用者自測）
+============================================================
+
+1. Defaults：先手純黑、後手白＋現況陰影邊框，與換色前同。
+2. 先手改紅、後手改藍 → New Game 後 3D／Hand 跟色；深色輪廓在；
+   Message 仍 Black／White；Export 仍 "B"/"W"。
+3. 死子淡的是所選色，不是變回預設黑白。
+4. 提子／著色／軸／滾輪／Load 棋譜不退步；Load 不改別人色盤。
