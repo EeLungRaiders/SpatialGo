@@ -1,0 +1,87 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再套遊戲映像。不能開瀏覽器就改碼。
+不要把模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：10
+檔名：Prompts/10_P5_Apply_RecordAndTerritory.txt
+階段：P5 Apply — JSON 棋譜（畫面 textarea 可貼上讀取）+ ended 計分後領地著色
+
+本檔即完整任務。diff-change-workflow 只做到 Step C；未說「可以套用」不准改樹。
+讀 Skills/diff-change-workflow/SKILL.md；找不到則停。
+
+============================================================
+0. 準據（已批准）
+============================================================
+
+必讀
+- Plans/09_P5_RecordAndTerritory.md
+- Plans/06_P4_Scoring.md（地／標死／何時出分；公式已是目＋提子＋6.5）
+- Plans/03_1_UserCoords.md
+- client：scoring.js、state.js、ui/controller.js、board3d.js、
+  sgf.js（只當反面教材，不載入）、gogame.htm、insert_files
+
+使用者批准
+- 1 批准；2 JSON + 顯示座標；3 著色只在 ended 且已計分後
+- 畫面上必須有 textarea：Export 寫進去；直接貼上再 Load 即可，
+  選檔只是可選（填進同一塊）。不要做成只有隱藏 file input。
+
+禁止 reverse 04.x／05.x／07／08。不改提子、komi、軸、worldOf、相機。
+不宣稱 FF[4]。舊 sgf.js 留檔不載入。
+
+============================================================
+1. 棋譜
+============================================================
+
+新模組 client/core/record.js → go_record.js
+
+- format Go3D、size 4、coords user、komi 6.5
+- moves：play 的 p 為顯示座標（Export 必須 toUser；Load fromUser）
+- 重播只走 Rules.play／pass／resign；禁止只 setStone
+- 非法點或中途 !ok → 整檔失敗，state 維持載入前
+- deadStones 僅 ended 時套用；套用後 score + 著色（與標死即重算一致）
+- scoreResult 快照可核對，不一致英文警告仍載入局面
+
+UI（英文）
+- textarea 常駐可見（棋譜原文）
+- Export：寫入 textarea；可選下載 .go3d.json
+- Load：讀 textarea（先可貼上）；可選 file input 只負責把檔案文字填進 textarea 再走同一 Load
+- 失敗英文 Message，盤不變
+
+============================================================
+2. 著色
+============================================================
+
+- 僅 ended 且已有 scoreResult
+- Scoring.score(state, { includePoints: true }) 回傳內部格點；
+  UI／board3d 禁止自己再 flood
+- 三組空點標記：黑地／白地／dame；活子球不變；死子仍淡／X
+- playing 或 Undo 回 playing：恢復淡灰空點、清著色
+- 標死後重算：著色跟著更新
+- ended 點活子＝標死；點空地／著色點不 play
+- 著色弄壞 extras／滾輪 → 關著色留數字，不要 TH2／clearDom 整盤
+
+============================================================
+3. 檔案
+============================================================
+
+必做：record.js、scoring.js includePoints、record_cases.js、
+scoring_cases 點數長度、ui/controller.js、board3d.js 空點三色、
+gogame.htm／insert_files／必要時 AutoLoad、AGENTS.md／README 短句
+
+不改 rules.js play。不載 sgf.js／board2d.js。
+
+============================================================
+4. Step B / C
+============================================================
+
+Patch：已移除（原 Prompts/patches/10_P5_RecordAndTerritory_semantic.diff）
+可拆檔但要總清冊。git apply 與 git apply -R。
+貼 diff、apply／reverse，問可以套用？停止。
+
+============================================================
+5. 驗收（套用後使用者自測）
+============================================================
+
+見 Plans/09 §8。
+另：不經選檔，把 Export 文字貼進 textarea 再 Load，局面一致。

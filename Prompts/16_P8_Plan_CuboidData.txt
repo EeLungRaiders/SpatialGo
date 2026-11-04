@@ -1,0 +1,56 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再套遊戲映像。不能開瀏覽器就改碼。
+不要把模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：16
+檔名：Prompts/16_P8_Plan_CuboidData.txt
+階段：P8 資料層 Plan。禁止改程式、禁止 patch、禁止做三個 select。
+
+寫完 Plans/16_P8_CuboidData.md 即停。未批准不得寫 17 apply。
+
+準據
+- Reports/15_P8_Cuboid_Impact.md
+- 使用者：分級大；每軸 1..9；舊 JSON 單一 size 當立方 [n,n,n]；後續拆步。
+- 11 暫停／不做仍有效。14_2 間距 2 維持，改為每軸各自 n。
+
+============================================================
+0. 本步範圍（寫死）
+============================================================
+
+做：state／coords／inBounds／worldOf／格線迴圈／scoring 對帳／record
+     改成三軸長度；UI **仍一個** N select，newGame 寫成 sx=sy=sz=N。
+     畫面與現況等邊立方必須回歸。
+
+不做：三個 select、長方 UI、改相機特例、切層 2D、改提子公式。
+
+通過定義：選 N=4／5／9、Load 舊 size:4／size:5 譜，行為與 16 之前相同。
+
+============================================================
+1. Plan 必須定的資料形狀
+============================================================
+
+建議（可在 Plan 裡選一，預設如下）：
+- state.sizeX sizeY sizeZ（1..9）；可留 size 當「三軸相等時的別名」，不相等時不要用單一 size 迴圈
+- emptyBoard(sx,sy,sz)；inBounds 三軸各自上限
+- coords：user_x=2*ix-(sx-1) 等；fromUser(x,y,z,sx,sy,sz)
+- (0,0,0) 是格點 ⇔ 三軸皆奇
+- record 新譜 size:[sx,sy,sz]；讀到數字 n → [n,n,n]；陣列長度不為 3 或越界 → 整檔失敗
+- 對帳 活子+terr+dame === sx*sy*sz
+- board3d 用三個 half；picking 點數 sx*sy*sz；軸長可暫用 max 邊（本步不修扁平相機）
+
+檔案表、測試：立方回歸 Z4／Z5／Rec 舊整數 size；加一筆「內部已能 newGame({sizeX:4,sizeY:5,sizeZ:5})」即可，**UI 測不到長方**。
+
+建議下一份：Prompts/17_P8_Apply_CuboidData.txt
+再下一份才是 18 UI 三 select。
+
+是非題：
+1. 是否批准本資料層 Plan？
+2. record 用 size:[sx,sy,sz]、舊整數當立方，可以嗎？
+3. 本步 UI 仍一個 N，可以嗎？
+
+============================================================
+2. 交付
+============================================================
+
+只交 Plans/16_P8_CuboidData.md。不要 apply。

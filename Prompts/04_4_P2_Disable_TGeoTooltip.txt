@@ -1,0 +1,50 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再套遊戲映像。不能開瀏覽器就改碼。
+不要把模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：04_4
+本檔即完整任務。只做到 diff-change-workflow Step C，未說「可以套用」不准改樹。
+
+前提
+- 04 提子規則正確；04_2 顯示已跟 state；不要 reverse 04／04_2。
+- 04_3 可留在樹上當現況來改；本 diff 須能單獨 reverse 回 04_3 之後。
+- 產品不需要 JSROOT tooltip。落子資訊只走 Message／著手紀錄。
+- 不改 rules.js、不做 05 座標、不改 select_in_view、不常駐 wrap drawExtraShape、
+  不改 _clones.setMaxVisNodes。
+
+使用者現況 error（重啟、滑入畫面、停在已落子上）：
+  base3d.mjs control.mainProcessMouseMove
+    this.tooltip?.extract_pos is not a function
+  base3d.mjs control.mainProcessMouseLeave
+    this.tooltip.hide is not a function
+原因假設（請讀碼證實）：tooltip 被設成 truthy 卻沒有官方方法。
+?. 不能避免「物件在、方法不在」。
+
+Step A — Reports/04_4_DisableTooltip.md 須回答
+1. 現在 painter／control.tooltip 實際是什麼（null、官方物件、{}、stub）？
+2. setTooltipAllowed 或等價 API 現況？
+3. 正確關閉法：tooltip=null，或保留官方物件並 disable，不要缺方法 stub。
+4. 關掉後 picking（射線吸附）與 Message 是否仍獨立可用？
+
+允許
+- 使用 JSROOT 現成關 tooltip／highlight API
+- control.tooltip = null 或官方 disabled 物件
+- 摘掉仍呼叫缺方法 tooltip 的路徑（若與 04_3 mute 重疊，整理成一套，不要兩套 stub）
+
+禁止
+- 再放 { } 或只有 return false 的假 tooltip
+- 改 geobase／JSROOT 套件檔
+- 改提子規則
+
+Step B
+  已移除（原 Prompts/patches/04_4_DisableTooltip_semantic.diff）
+可 git apply 與 git apply -R。預期只動 board3d.js。
+
+Step C
+貼結論、diff、apply／reverse，問可以套用？然後停止。
+
+驗收（使用者自測）
+1. 重啟專頁、滑入 3D、停在球上：無 extract_pos／hide error。
+2. 仍可點格落子；Message 正常；capture 後球消失（04_2 不退步）。
+3. resolveStack 若還在，報告註明「04_4 範圍外，屬 control listener」，不要為了它改規則。

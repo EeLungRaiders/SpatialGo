@@ -1,0 +1,49 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再套遊戲映像。不能開瀏覽器就改碼。
+不要把模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：08
+本檔即完整任務。diff-change-workflow 只做到 Step C；未說「可以套用」不准改樹。
+讀 Skills/diff-change-workflow/SKILL.md；找不到則停。
+
+準據變更（使用者手測 07 後定案，覆寫 06 的「區域為預設」）
+- 計分改為目＋提子（日式 territory）：
+    black = 黑地 + capturedWhite + 標死的白子數
+    white = 白地 + capturedBlack + 標死的黑子數 + 6.5
+- 地的 flood 與標死與 06 相同（死子當空；只碰活子）
+- 對帳盤面仍 活子+terr+dame===64；分數不再含活子數
+- 不要把活子加進得分
+- komi 6.5 加白；無和棋
+- Resign 仍不計分
+- 兩 Pass 先不出分；標死或 Score 才出分
+- 3D 仍只標死可見，無領地 overlay
+- UI／Message／banner／Score 列全部英文（不要中文「區域」「標死後計分」「黑勝」）
+
+必讀
+- Plans/06_P4_Scoring.md（地／標死／時機仍用；分數公式改本檔）
+- scoring.js、ui/controller.js、scoring_cases.js
+
+英文 Message 例
+  Mark dead stones, then Score.
+  Territory B 13 W 11.5 (terr 4+3 cap 9+2 dead 0) komi 6.5 → Black wins
+頂欄 Score 同樣用此公式。
+
+測試
+- E 空盤：terr 0 cap 0 → B 0 W 6.5 White wins
+- S 兩角一子無地：B 0 W 6.5（不是 1 vs 7.5）
+- C／D／H 地點數不變，得分不加活子
+- M 標死：該色活子變地或 dame，對方 cap 增加
+- 舊區域向量「黑=活子+地」全部改寫
+- 不改 rules play；不 reverse 04.x／05.x／軸
+
+檔案：scoring.js、scoring_cases.js、ui/controller.js、
+AGENTS.md／README 短句。board3d 不必為計分公式再改。
+
+Patch：已移除（原 Prompts/patches/08_P4b_TerritoryScore_EN_semantic.diff）
+可 git apply 與 -R。問可以套用？停止。
+
+驗收
+1. 類似 72 手、地 4+3、提 9+2、死 0、komi 6.5 → B 13 W 11.5，不是 36／34.5。
+2. 兩 Pass 後英文提示標死；出分也是英文。
+3. 標死／Undo Pass／Resign／3D 死子外觀不退步。

@@ -1,0 +1,158 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再 docker / podman 套遊戲映像。
+不能開瀏覽器就改碼；不能以「打不開頁面」為由改架構。
+驗收寫成手動步驟，不要假裝已在瀏覽器點過。
+不要把公開模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：04_3
+檔名：Prompts/04_3_P2_PlaceMove_ResolveStack.txt
+
+本檔即完整任務。讀完按 §0→§7 執行。
+不要等使用者再補「先調查」「不要改規則」「不要套用」。
+
+============================================================
+0. 執行契約
+============================================================
+
+讀並遵循 Skills/diff-change-workflow/SKILL.md
+（路徑略有出入則在 Skills/ 搜 diff-change）。找不到 skill：停止，不准改程式。
+
+只做到 Step C，然後停止：
+
+  A  只讀調查，寫 Reports/04_3_PlaceMove_ResolveStack.md
+  B  若 §4 判定「本階段應修」：產出可 reverse 的 unified diff → Prompts/patches/
+     若判定「應略過」：不產修規則的 diff，只在報告寫略過理由與復現步驟
+  C  問「可以套用？」或「確認略過？」
+
+未得到「可以套用」前禁止改工作樹。禁止先改碼再補 diff。
+禁止 reverse 04 提子、禁止為了本題整份 reverse 04_2（顯示同步必須留下）。
+04_3 可以改 board3d.js 同一路徑，新 diff 須能單獨 reverse 回「04_2 之後」。
+
+不要做
+- 改 rules.js
+- 顯示座標 05、SGF、切層 2D、Firefox New Game 相機
+- 常駐 wrap drawExtraShape；改 select_in_view；改 _clones.setMaxVisNodes
+- J.draw(stones) 當第二個 main；裸 TGeoBBox 當唯一 draw
+
+============================================================
+1. 已證實的現況
+============================================================
+
+- 提子規則正確：Message 有 capture；被提格可再下；再下仍可 capture。
+- 04_2 之後畫面大致跟 state：球會消失、空點會回來。
+- 04_2 之後仍：一落子（含合法第一手）就 throw。
+- 使用者說：更早（04_1／04_2 這條增量 redraw 之前）落子不會這樣。
+
+現在一落子的 console：
+
+  [board3d] stoneExtras ok state=1 tree=1 mesh=0 extrasNodes=0
+    hasContainer=false facesBudget=2000000 nodesBudget=10000
+    — extras container missing
+
+  ClonedNodes.resolveStack (geobase.mjs)
+  Cannot read properties of undefined (reading '0')
+    TGeoPainter.resolveStack
+    TGeoPainter.getStackFullName
+    #controls.processMouseMove
+    control.delayedProcessMouseMove
+    control.mainProcessMouseMove
+    control.lstn_mousemove
+
+注意 stack 是 control.lstn_mousemove／#controls.processMouseMove
+（base3d.mjs 的 controls），不是 04_2 換成空函式的 painter.processMouseMove。
+
+============================================================
+2. Step A — 調查題目（報告必須逐條答）
+============================================================
+
+必讀
+- Program_Go/GoGame/client/render/board3d.js
+  （04_2 的 muteProcessMouseMove、wipeNamedExtras、redraw 增量路徑、
+   logStoneExtrasAudit、attachStonesToGeoPainter）
+- 同檔如何取得 controls、如何 attachPointerHandlers
+- Reports/00_P0_ReadOnly_Audit.md §5（extras／Reset；不再列舊檔名）
+
+回答：
+
+A. extras container missing：drawExtras 是否沒掛上這個 painter？
+   wipeNamedExtras／getExtrasContainer("delete") 是否把容器刪掉後沒再建？
+   state=1 tree=1 mesh=0 extrasNodes=0 時，畫面上那顆球從哪來？
+B. 04_2 mute 的是 painter.processMouseMove 與 painter.lstn_*。
+   實際 throw 的是 control.lstn_mousemove。兩者是不是不同物件？
+   mute 之後誰又在 J.draw("same")／drawExtras／render3D 把 control listener 接回去？
+C. delayedProcessMouseMove：clearDom／wipe 之後 timer 是否仍打舊 clones？
+D. 「以前落子不會 throw」對應哪段舊路徑（每手 drawAll＋clearDom，
+   還是尚未增量 redraw）？04_1／04_2 哪一步開始每手都炸？
+E. picking 是否完全不靠 TGeo highlight？若是，controls 的
+   processMouseMove／tooltip 能否在建立 controls 時就關死？
+
+============================================================
+3. 本階段該修 vs 可略過
+============================================================
+
+應修（04_3 要出 patch）— 符合任一：
+
+- extras 宣稱 ok 但 hasContainer=false／mesh=0，球靠殘留 mesh 或錯誤路徑在畫
+  （顯示與 audit 說謊，之後提子／Reset 會再裂）
+- control.lstn_mousemove 在「本專案自訂 picking 已足夠」時仍 resolveStack
+  且能用 controls／painter 現成 API 或摘 listener 關掉
+  （不是改 select_in_view，不是改 _clones 上限）
+- 04_2 的 wipe 刪掉 extras 容器後沒有合法再建，屬於 04.x 迴歸
+
+可略過（只寫報告、Step B 不修）— 必須同時成立：
+
+- extras 其實已掛上，hasContainer=false／mesh=0 只是數錯（改 log 即可，可算小修）
+- throw 只來自 JSROOT 內部 highlight，摘掉 control listener 必須改 JSROOT 核心
+  或必須用禁用手段才能停
+- 不影響落子、提子顯示、Undo、Reset；只是 console 噪訊
+
+不要把「以後 05 座標做好就會消失」當略過理由。座標與這條 stack 無關。
+
+判定寫在報告開頭：「04_3 修」或「04_3 略過」+ 一句理由。
+不確定時偏「修 extras 容器 + 摘 control.lstn_mousemove」，不要略過 container missing。
+
+============================================================
+4. 允許的修法（僅當判定應修）
+============================================================
+
+- 保證 attach 後 hasContainer=true、有子時 mesh>0；
+  wipe 之後必須再 drawExtras 建回同名容器
+- 對 control（不是只對 painter）摘 lstn_mousemove／pointermove，
+  或取消 delayedProcessMouseMove timer
+- 建立／取得 controls 後關 tooltip、highlight
+- 必要時修正 audit log，避免 ok + container missing 這種自相矛盾
+- 暫時 wrap drawExtraShape 後立刻還原（維持 P1）
+
+禁止用改 ClonedNodes 內部結構來「忍過」resolveStack。
+
+============================================================
+5. Step B — patch
+============================================================
+
+建議：
+  已移除（原 Prompts/patches/04_3_PlaceMove_ResolveStack_semantic.diff）
+必須可 git apply 與 git apply -R。
+預期只動 board3d.js（必要時 controller 裡 New Game／Reset 呼叫點）。
+不動 rules.js。
+
+若略過：不要交空 patch 假裝有修。
+
+============================================================
+6. Step C
+============================================================
+
+回覆含：skill 路徑、判定修／略過、A–E 各一句、
+（若修）patch 路徑與 apply／reverse、diff 原文、
+最後問可以套用？或確認略過？
+然後停止。
+
+============================================================
+7. 套用後手動驗收（給使用者）
+============================================================
+
+1. 第一手合法落子後滑過立方體：理想是無 resolveStack。
+   若仍有，報告須寫清剩餘路徑（哪一個 control／timer）。
+2. stoneExtras：有子時不得再出現 hasContainer=false 還標 ok。
+3. capture 後球消失、空點回來（04_2 行為不得退步）。
+4. Undo／Reset view：子與鏡頭可用。

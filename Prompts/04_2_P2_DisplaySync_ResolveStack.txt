@@ -1,0 +1,138 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再 docker / podman 套遊戲映像。
+不能開瀏覽器就改碼；不能以「打不開頁面」為由改架構。
+驗收寫成手動步驟，不要假裝已在瀏覽器點過。
+不要把公開模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：04_2
+檔名：Prompts/04_2_P2_DisplaySync_ResolveStack.txt
+
+本檔即完整任務。讀完按 §0→§6 執行。
+不要等使用者再補「先調查」「不要改規則」「不要套用」。
+
+============================================================
+0. 執行契約
+============================================================
+
+讀並遵循 Skills/diff-change-workflow/SKILL.md
+（路徑略有出入則在 Skills/ 搜 diff-change）。找不到 skill：停止，不准改程式。
+
+只做到 Step C，然後停止：
+
+  A  只讀調查，寫 Reports/04_2_DisplaySync.md
+  B  可 reverse 的 unified diff → Prompts/patches/
+  C  貼 diff、apply／reverse 指令，問「可以套用？」
+
+未得到「可以套用」前禁止改工作樹。禁止先改碼再補 diff。
+
+保留
+- 04 提子／自殺／劫／ended（已移除，原 Prompts/patches/ 裡 04 的 diff；不要 reverse）
+- 04_1 若仍在樹上：當現況來讀，不要盲目 reverse；
+  04_1 未解決本題，04_2 可以改同一批 board3d 路徑，但新 diff 必須可單獨 reverse
+
+不要做
+- 改 rules.js 提子順序、氣、劫
+- toUser／顯示座標（05）、SGF、切層 2D、Firefox New Game 相機
+- 常駐 wrap drawExtraShape；改 select_in_view；改 _clones.setMaxVisNodes
+- J.draw(stones) 當第二個 main；裸 TGeoBBox 當唯一 draw
+
+============================================================
+1. 使用者已證實（調查起點，不要再當假說推翻規則）
+============================================================
+
+規則有在跑，失敗只在 3D 顯示：
+
+- Message 會出現 capture。
+- 被提格在 state 是空的：可以再落子。
+- 若該落子能提對方，Message 仍是 capture（看似自殺，規則判定正確）。
+- 畫面球常沒被拿掉，或增減不同步。
+- 每一手落子後 mousemove 都會：
+
+  ClonedNodes.resolveStack (geobase.mjs)
+  Cannot read properties of undefined (reading '0' 或 '1' 或 '2' 或 '3')
+    TGeoPainter.getStackFullName ← processMouseMove ← lstn_mousemove
+
+- 曾見：[board3d] stoneExtras ok state=N tree=N mesh=0
+
+結論（寫進報告開頭，當前提）：
+  Rules.play 與 board[] 正確；不要改規則來「配合畫面」。
+  要修的是 drawAll／extras／painter／mousemove 與 state.board 不同步。
+
+============================================================
+2. Step A — 調查題目（報告必須逐條回答）
+============================================================
+
+必讀
+- Program_Go/GoGame/client/render/board3d.js
+- Program_Go/GoGame/client/render/controller.js
+- Program_Go/GoGame/client/ui/controller.js
+  （確認 capture 後呼叫的是 play 回傳的新 state，而不是舊參考）
+- Reports/00_P0_ReadOnly_Audit.md §5（extras／Reset；不再列舊檔名）
+
+回答：
+
+A. afterStateChange → redraw → drawAll 是否每次 clearDom？
+   clearDom 時 lstn_mousemove／highlight stack／_clones 有沒有斷乾淨？
+B. buildStonesGeoExtract 是否只掃當前 state.board（空格不建球）？
+   有沒有快取舊子列表？
+C. attachStonesToGeoPainter 之後為何 mesh=0？
+   球若還看得到，是舊 canvas 殘影、沒拆的 mesh，還是別條畫線？
+D. 自訂射線 picking 是否已足夠？能否用現成 API 關掉
+   tooltip／highlight，讓 processMouseMove 不再 resolveStack
+   （不是改 select_in_view，不是改 _clones 上限）？
+E. 04_1 現況改了什麼、為何仍每手 throw？04_2 要留什麼、改什麼？
+
+============================================================
+3. 允許的修法
+============================================================
+
+主（可並用）
+
+1. 顯示唯一真相：每次成功 play／undo／pass（board 有變）用回傳 state
+   全量重建 extras；被提格不得再有球；空點淡標記要回來。
+2. 換 painter／clearDom 之前摘 mousemove／tooltip，清 highlight；
+   extras 掛上同一 TGeoPainter 之後再掛回 listener。
+3. 關 TGeo tooltip／highlight（setTooltipAllowed(false) 或專案等價 API），
+   避免 resolveStack。picking 維持既有射線吸附。
+4. 有子時不應長期 mesh=0。暫時 wrap drawExtraShape 傳高 numfaces
+   後必須立刻還原。
+
+備
+- 格線 painter 常駐，只刪／重建 extras 容器 "goStones"，避免每手 clearDom。
+  仍禁止第二套棋子資料源。
+
+若 UI 誤把 !ok 或舊 state 拿去 drawAll，只改呼叫點，不改 Rules。
+
+============================================================
+4. Step B — patch
+============================================================
+
+建議：
+  已移除（原 Prompts/patches/04_2_DisplaySync_semantic.diff）
+檔頭註明有無 move。
+必須：git apply --whitespace=nowarn 與 git apply -R --whitespace=nowarn。
+
+預期主改 board3d.js；必要時 render/controller.js、ui/controller.js 的 render 呼叫。
+不應改 client/core/rules.js。
+
+============================================================
+5. Step C — 停止
+============================================================
+
+回覆含：skill 路徑、報告路徑、A–E 各一句、主修法、
+patch 路徑、apply／reverse 指令、diff 原文（skill 若要求）、
+最後問：是否可以套用？
+然後停止。
+
+============================================================
+6. 套用後手動驗收（寫進報告，供使用者自己測）
+============================================================
+
+1. 下子後立刻滑過立方體：無 resolveStack。
+2. Message 出現 capture 時，被提的球在 3D 消失；該格淡標記回來。
+3. 再下在剛被提的空格：可下；若能提對方，Message 為 capture，對方球消失。
+4. Undo 提子手：球回來，與 state 一致。
+5. Reset view：子還在，無 resolveStack。
+6. 有子時 stoneExtras 不應長期 mesh=0（若只是計數別名，改 log 並在報告說明）。
+7. 自殺仍拒；規則行為與 04 相同。

@@ -1,0 +1,62 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再套遊戲映像。不能開瀏覽器就改碼。
+不要把模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：23
+檔名：Prompts/23_P10_Apply_KomiAndMultiMove.txt
+階段：P10 Apply — 可選貼目與連下
+
+本檔即完整任務。diff-change-workflow 只做到 Step C；未說「可以套用」不准改樹。
+讀 Skills/diff-change-workflow/SKILL.md；找不到則停。
+
+準據：Plans/22_P10_KomiAndMultiMove.md
+使用者：1 批准；2 雙方相同；3 一手 Pass 結束回合。Banner 顯示本回合第幾手（1/2）。
+11 暫停／不做仍有效。不要 reverse 17–21。計分公式不改，只讀該局 state.komi。
+
+============================================================
+0. 產品（不得改掉）
+============================================================
+
+貼目
+- 列舉 0.5, 1.5, …, 19.5；預設 6.5；給白
+- New Game 時選；中局不可改
+- JSON 寫 komi；Load 顯示；缺欄 6.5；非法整檔失敗
+
+連下
+- 雙方相同；可選 1..6；預設 1
+- 每手走 Rules.play；合法才消耗；非法不消耗
+- 一手 Pass 結束該方本回合；連續兩方各 Pass 一次仍 ended
+- Undo 一手
+- JSON 寫 movesPerTurn；Load 顯示；缺欄 1；非法整檔失敗
+- 舊譜無 movesPerTurn、size 整數仍可讀
+
+Banner（必須）
+- playing 時顯示本回合即將落下的第幾手，例如 1/2、2/2、1/1
+- 建議：To play: Black · 4×4×4 · komi 6.5 · 1/2
+- Hand 仍跟 toPlay（連下中途第二手同一色）
+
+============================================================
+1. 檔案
+============================================================
+
+state.js、rules.js、record.js、scoring.js（只確認讀 state.komi）、
+ui/controller.js（兩 select、banner、New Game／Load）、
+rules_cases／record_cases／scoring_cases、
+AGENTS／README 短句。
+不改 board3d、clip、coords、提子本體。
+
+============================================================
+2. Step B / C
+============================================================
+
+Patch：已移除（原 Prompts/patches/23_P10_KomiAndMultiMove_semantic.diff）
+可拆檔。git apply 與 -R。問可以套用？停止。
+
+============================================================
+3. 驗收（套用後使用者自測）
+============================================================
+
+見 Plans/22 §9：R1／M2／P1／P2／Ill／U1／RecOld／RecM2／Sc05。
+另：連下 2 時 banner 先 1/2，下一手後 2/2，第三手變白且 1/2。
+預設 New Game 仍 6.5、1/1，與 23 前相同。

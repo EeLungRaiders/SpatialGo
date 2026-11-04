@@ -1,0 +1,92 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再套遊戲映像。不能開瀏覽器就改碼。
+不要把模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：15
+檔名：Prompts/15_P8_Eval_Cuboid.txt
+階段：只讀評估。禁止改程式、禁止 patch、禁止寫 apply、禁止新建 Plans。
+
+本檔即完整任務。只交 Reports/15_P8_Cuboid_Impact.md 後停止。
+
+============================================================
+0. 要評估的功能（尚未批准實作）
+============================================================
+
+把棋盤從「等邊立方 N×N×N、N=1..9」拓展成「任意長寬高長方體」
+sx × sy × sz（三軸可不同）。
+
+仍屬立體圍棋：六鄰、規則在 JS、3D 唯一棋盤。
+11 暫停／不做仍有效（切層 2D、Firefox 相機、SGF、第二套計分、超劫）。
+14／14_2：等邊與「顯示座標一律間距 2」視為現況。
+
+本階段不問使用者定案三軸上下限；報告裡可建議（例如每軸 1..9），
+但標成建議不是產品鎖定。
+
+============================================================
+1. 必讀（只讀，以實際樹為準）
+============================================================
+
+- client/core/state.js          # size／emptyBoard／inBounds／newGame
+- client/core/coords.js         # toUser／fromUser；是否假設三軸同一 N
+- client/core/rules.js          # DIRS、inBounds 呼叫
+- client/core/scoring.js        # N³ 對帳
+- client/core/record.js         # JSON size 單一整數
+- client/ui/controller.js       # New Game 的 N select
+- client/render/board3d.js      # 格線、worldOf、picking N³、軸長、extras 迴圈
+- 相關 *_cases.js
+- Plans/13_P7_CubeSize.md、Plans/03_1_UserCoords.md
+
+============================================================
+2. 報告必須回答
+============================================================
+
+A. 現況哪些地方把「一個 size」寫死成三軸相同？
+   列檔 + 函式／常數（不必貼整檔）。
+
+B. 座標：14_2 公式 user=2*index-(N-1) 若三軸 N 不同，
+   每軸各自套自己的 n 是否足夠？奇偶混用（例如 4×5×5）
+   時中心 (0,0,0) 是否只在「三軸都是奇數」才是格點？
+
+C. 3D：格線條數、AABB／軸長、picking 點數 sx*sy*sz、
+   extras 預算、Reset framing 哪幾段要參數化。
+
+D. 棋譜：現在 size:4 單欄。建議改成 size:[sx,sy,sz] 或
+   size:{x,y,z}；舊「單一 size」等邊譜要不要讀（評估即可）。
+
+E. UI：三個 select 還是一組數字；1×1×1 仍自殺 demo。
+
+F. 分級小／中／大，與理由。
+   （預期偏大：state／coords／board3d／record／scoring／UI／測試全動，
+    但 Rules 六鄰本體可不動。）
+
+G. 風險
+   - 扁平 1×9×9 像「一層平面」但 picking／氣仍是六鄰
+   - 某軸=1 時該軸無氣、易自殺
+   - Load 舊 size:5 立方 JSON
+   - extras／相機被最長軸拉開
+
+H. 建議：可以進行但先 Plan、建議的每軸上下限、是否分兩步
+   （先三軸獨立 size 但 UI 仍立方／再開放長方）。
+   本 15 不要寫 16 apply。
+
+============================================================
+3. 交付
+============================================================
+
+只交 Reports/15_P8_Cuboid_Impact.md
+
+結構：
+1. 一句話影響分級
+2. 現況單一 size 出現點（表）
+3. 座標／中心格
+4. 3D／picking
+5. record／scoring／UI
+6. 風險
+7. 建議下一步（Plan 檔名建議 Prompts/16_P8_Plan_CuboidData.txt）
+8. 給使用者的三題：
+   - 是否同意分級？
+   - 每軸上限是否先跟立方一樣 1..9？
+   - 舊 JSON 只有一個 size 數字：當立方讀，還是拒？
+
+不要 apply、不要改 AGENTS。

@@ -1,0 +1,47 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再套遊戲映像。不能開瀏覽器就改碼。
+不要把模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：21
+檔名：Prompts/21_P4_ScoreMessage_Pairs.txt
+階段：計分 Message 用詞。diff-change-workflow 只做到 Step C。
+讀 Skills/diff-change-workflow/SKILL.md；找不到則停。
+不要 reverse 20／20_1。不改計分公式、komi、標死、clip。
+
+============================================================
+0. 問題
+============================================================
+
+現況類似：
+Territory B 24 W 13.5 (terr 21+5 cap 0+2 dead 3+0) komi 6.5 → Black wins
+
+加號被讀成同一邊相加。要改成每項都是 Black:White。
+
+正確語意（數字舉例，以 scoreResult 為準）：
+- terr 21(B):5(W)
+- cap 0(B):2(W)     # 黑提白 / 白提黑
+- dead 3(B):0(W)    # 標死後算給黑的死白 / 算給白的死黑
+  （使用者草稿寫過 3(B):2(W)；2 是 cap 白，不要和 dead 混）
+
+總分公式不變：B = terrB+capB+deadB；W = terrW+capW+deadW+komi。
+
+建議一句英文：
+Territory B {b} W {w} (terr {tB}(B):{tW}(W) cap {cB}(B):{cW}(W) dead {dB}(B):{dW}(W)) komi {k} → {Winner} wins
+平手則 Draw。Banner 若也用 21+5 一併改。
+
+============================================================
+1. 檔案／patch
+============================================================
+
+預期 controller.js 組字串、必要時 scoring 回傳欄位名不變只改顯示。
+Patch：已移除（原 Prompts/patches/21_ScoreMessage_Pairs_semantic.diff）
+可 git apply 與 -R。問可以套用？停止。
+
+============================================================
+2. 驗收
+============================================================
+
+同一局應接近：
+Territory B 24 W 13.5 (terr 21(B):5(W) cap 0(B):2(W) dead 3(B):0(W)) komi 6.5 → Black wins
+總分與提子數不變。

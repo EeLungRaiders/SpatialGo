@@ -1,0 +1,185 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再 docker / podman 套遊戲映像。
+不能開瀏覽器就改碼；不能以「打不開頁面」為由改架構。
+驗收寫成手動步驟，不要假裝已在瀏覽器點過。
+不要把公開模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：01
+階段：P1 Plan（只寫計畫，禁止改程式、禁止寫 patch、禁止開始 4×4×4 實作）
+
+P0 已完成且使用者已批准歸檔。舊平面討論文字已移除。
+工作區 Prompts/ Plans/ 已清空，只留給立體圍棋。
+工作區唯一舊報告：Reports/00_P0_ReadOnly_Audit.md（必讀）。
+
+============================================================
+0. 本階段允許 / 禁止
+============================================================
+
+允許
+- 讀現行程式與 reference 約束報告
+- 新建 Plans/01_P1_SpatialGo_4x4x4.md
+- 在計畫裡點名將改哪些檔、改什麼、不改什麼
+
+禁止
+- 修改 Program_Go、Launcher、client、SetSV、insert_files、HTML
+- 修改 AGENTS.md / README.md（列進 Plan 即可，本階段不動）
+- 新建 Prompts/patches 或直接 apply
+- 新開 C++ 功能 class（P1 不需要）
+- docker / run_container.sh
+
+結束條件
+寫完 Plans/01_P1_SpatialGo_4x4x4.md 後停止，用明確問句請使用者批准。
+未批准不得進入實作 Prompt。
+
+============================================================
+1. 先讀
+============================================================
+
+必讀
+- Reports/00_P0_ReadOnly_Audit.md
+- AGENTS.md、README.md（產品目標仍是平面 Go，Plan 裡要寫怎麼改寫）
+- Program_Go/GoGame/client/core/state.js
+- Program_Go/GoGame/client/core/rules.js
+- Program_Go/GoGame/client/render/board3d.js
+- Program_Go/GoGame/client/render/board2d.js
+- Program_Go/GoGame/client/render/view_mode.js
+- Program_Go/GoGame/client/render/controller.js
+- Program_Go/GoGame/client/ui/controller.js
+- Program_Go/GoGame/client/loader/go_loader.js
+- Program_Go/GoGame/html/gogame.htm
+- Launcher/insert_files/GoGame_files.txt
+- Program_Go/SetSV.C（確認 P1 不碰 ACLiC 邊界）
+
+約束（只讀；要點見 Reports/00_P0_ReadOnly_Audit.md §5，不再列舊檔名）
+
+============================================================
+2. 已鎖定的產品（不得在 Plan 裡改掉）
+============================================================
+
+這是新遊戲「立體空間圍棋」，不是平面盤加 z，也不是平面 Go 的 3D 視圖。
+
+| 項目 | 第一版定案 |
+|------|------------|
+| 盤 | 只做 4×4×4 |
+| 氣／連 | 六鄰 ±x ±y ±z，不連對角 |
+| 呈現 | 只有 3D；透明立方格 + 3D 棋子；沒有平面棋盤樣子 |
+| 延後 | SGF、計分、死子、領地 overlay |
+| 規則 | 瀏覽器 JS |
+| Server | ProgramGo_SV 純殼 |
+| P1 規則深度 | 極簡合法落子（空點可下即可）；提子／自殺／劫列 P2 |
+
+沿用
+- SetSV 單一入口、業務 .cpp 不互 include 業務 header
+- insert_files、專頁 /gogame/gogame.htm、Reload 清 WebGL
+- 子走同一 TGeoPainter extras；高 numfaces／numnodes
+- 加子／提子／Undo 同一條依 state 重建 extras 的路徑
+- Reset：相機歸位後用高上限再掛子；禁止常駐 drawExtraShape；
+  禁止亂改 select_in_view；禁止把 focusCamera／collectVisibles
+  當成「子一定還在」
+- 不要每手 nvidia-smi
+- 不要裸 TGeoBBox 當唯一 JSROOT.draw
+- 不要假設 THREE.BoxGeometry 是 constructor
+
+不要
+- 邏輯寫進 SV
+- 保留 2D 主盤當可玩面
+- 射線 ∩ 平面 z=0 當 picking
+- 把 z 做成 overlay 或「多一層 2D」
+- 為了好看再做木質 slab 當棋盤
+
+============================================================
+3. Plan 必須寫清的設計
+============================================================
+
+3.1 State
+- 建議 board[z][y][x]，N=4 常數（可集中一處 SIZE=4，不要做 1–50 或矩形）
+- inBounds(x,y,z)
+- 空／黑／白
+- 既有寬高 API、平面座標字串、z=0 假設：列出廢除或改名清單
+- 既有測試檔怎麼改或先停用哪些平面 cases
+
+3.2 Rules（P1）
+- DIRS 六鄰
+- P1：只拒絕越界與非空；不要在本 Phase 做完整提子／劫
+- 在 Plan 註明 P2 才接：提子、自殺禁、簡單劫、Pass／Resign／Undo 的 3D 同步
+  （Undo 若現況 UI 已有且只還原 state，P1 可沿用 state 堆疊，但 3D 必須跟 state）
+
+3.3 呈現（本 Phase 核心）
+透明立方格 = 4×4×4 交叉點的空間格線，不是一塊板。
+
+必須回答：
+- 格線用什麼物件（優先 TPolyLine3D 一類已證實路徑；禁止裸 TGeoBBox 當 main draw）
+- 空點要不要有極淡可點標記（若沒有，picking 如何穩定對到格點）
+- 棋子：沿用 TEveGeoShapeExtract + TGeoSphere extras；
+  建樹順序改為 z,y,x 或你選的順序，並寫為什麼不會再「整排消失」
+- 座標軸／原點／間距：一格一邊長多少、球半徑、格線與球的關係
+- 相機預設：能看見整個立方體，不要只對準 z=0
+- Reset view：沿用「歸位後高上限重掛 extras」
+
+3.4 Picking
+現況 board3d 是射線 ∩ z=0 → (x,y)。立體版必須對到 (x,y,z)。
+
+Plan 裡給一個主方案 + 一個備案，並選一個當 P1 預設。
+主方案必須能在「JSROOT 這套 THREE 不完整、BoxGeometry 常不存在」的約束下成立。
+不要發明需要改 JSROOT 核心的 picking。
+
+建議方向（可駁並給更好的，但須可落地）：
+- 每個交叉點掛極小／半透明 hit 代理，或
+- 對已有 extras／標記做最近格點吸附
+禁止：只點平面再靠 UI 選層當成唯一手段（層選可當輔助，不能當唯一棋盤）。
+
+3.5 UI 範圍
+- 專頁仍是唯一遊玩面
+- 拿掉或隱藏：2D/3D 切換、SGF、計分、領地、死子、改盤大小
+- 可留：New Game、Pass／Resign 可先禁用或標 P2、Mem. Stat.、Reload
+- 殼 index 的 GoBoard 仍只開專頁，不在主頁 mount WebGL
+
+3.6 檔案分派（計畫表，不是 diff）
+
+對每一個將動的檔寫：
+- 路徑
+- P1 要做的事（幾句）
+- 明確不做的事
+
+至少覆蓋：
+  state.js rules.js board3d.js board2d.js view_mode.js
+  render/controller.js ui/controller.js go_loader.js
+  gogame.htm
+  AGENTS.md README.md
+  測試檔
+  insert_files（若無新檔則寫「不改」）
+
+board2d.js：第一版不當可玩面。Plan 選一項並說明理由：
+  (a) 留檔但專頁不再載入
+  (b) 變成空操作 stub，避免 loader 斷鏈
+禁止在 P1 同時維護可玩的 2D 棋盤。
+
+3.7 AGENTS.md / README.md
+Plan 裡寫出要改的段落意圖（產品從平面 Go 改成立體 4×4×4；
+規則在 JS、SetSV、insert_files、extras 約束保留）。
+本階段只規劃，不改這兩檔。
+
+============================================================
+4. 交付
+============================================================
+
+只交 Plans/01_P1_SpatialGo_4x4x4.md，結構固定：
+
+1. 目標與非目標
+2. State
+3. Rules P1 / 留給 P2
+4. 立方格呈現與 extras
+5. Picking 主方案與備案
+6. UI 加減
+7. 檔案分派表
+8. 風險（漏排球、Reset 砍子、picking 點到鄰格、THREE 不完整）
+9. 手動驗收步驟（文字，假設使用者自己開專頁）
+10. 建議下一份實作 Prompt 檔名
+    （建議：Prompts/02_P1_Apply_SpatialGo_4x4x4.txt）
+11. 請使用者批准的是非題：
+    - 是否批准本 Plan？
+    - picking 用主方案還是備案？
+    - board2d 用 (a) 不載入還是 (b) stub？
+
+寫完即停。不要 apply。

@@ -1,0 +1,1 @@
+${WORKDIR}/ProgramGo_SV/js/serverlog.js ${JSROOTSYS}/scripts/serverlog.js

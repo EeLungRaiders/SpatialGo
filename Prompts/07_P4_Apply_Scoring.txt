@@ -1,0 +1,65 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再套遊戲映像。不能開瀏覽器就改碼。
+不要把模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：07
+檔名：Prompts/07_P4_Apply_Scoring.txt
+階段：P4 Apply — 區域計分、komi 6.5、ended 標死、Message、3D 死子可見
+
+本檔即完整任務。diff-change-workflow 只做到 Step C；未說「可以套用」不准改樹。
+讀 Skills/diff-change-workflow/SKILL.md；找不到則停。
+
+============================================================
+0. 準據（已批准，不要改產品選擇）
+============================================================
+
+必讀
+- Plans/06_P4_Scoring.md     # SSOT（含 06_1／06_2）
+- Plans/06_1_KomiDead.md
+- client/core/state.js、rules.js、scoring.js
+- client/ui/controller.js、render/board3d.js
+- client/tests/scoring_cases.js
+- gogame.htm／insert_files（是否已載 scoring）
+
+產品鎖定
+- 區域：活子 + 地；白 + 6.5；無和棋
+- 地：空或死子格六鄰 flood；只碰活子單色才是地
+- 對帳：活子 + terr + dame === 64（不含 komi，不把死子格再加一次）
+- 兩 Pass → ended，Message 只提示標死後計分，先不出分
+- ended 點有子的格：整塊切換 dead；切換後立即重算
+- Score 鈕 ended 可重算；playing 不可標死、不可 Score
+- Undo 最後 Pass：回 playing，清 deadStones 與 scoreResult
+- Resign 不跑區域分
+- 3D 死子淡或 X；禁止領地 overlay
+- Rules.play／劫不改；顯示座標、軸、滾輪不退步
+- 禁止 reverse 04.x／05.x
+
+============================================================
+1. 檔案
+============================================================
+
+- scoring.js 改寫立體區域制
+- state.js 加 deadStones [{x,y,z}]；newGame／clone／undo-pass 清掉
+- scoring_cases.js：§6 E S C D H T M M2 R；拿掉 SIZE===4 skip
+- ui/controller.js：ended 點擊標死、Message、Score
+- board3d.js：只死子外觀；picking 64 格；ended 時點子走標死不走 play
+- gogame.htm／insert_files／必要時 AutoLoad：載入 scoring 與 cases
+- AGENTS.md／README 短句
+
+不改 rules.js 的 play。不載 board2d。
+
+============================================================
+2. Step B / C
+============================================================
+
+Patch：已移除（原 Prompts/patches/07_P4_Scoring_semantic.diff）
+可按檔拆，須可 git apply 與 -R。
+貼 diff、apply／reverse，問可以套用？停止。
+
+============================================================
+3. 驗收（套用後使用者自測）
+============================================================
+
+見 Plans/06_P4_Scoring.md §9。
+另確認：空盤兩 Pass 後尚未出分；標死或 Score 才出現白 6.5。

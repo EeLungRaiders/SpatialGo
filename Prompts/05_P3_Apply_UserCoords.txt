@@ -1,0 +1,133 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再 docker / podman 套遊戲映像。
+不能開瀏覽器就改碼；不能以「打不開頁面」為由改架構。
+驗收寫成手動步驟，不要假裝已在瀏覽器點過。
+不要把公開模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：05
+檔名：Prompts/05_P3_Apply_UserCoords.txt
+階段：P3 Apply — 顯示座標（內部 index ↔ 使用者座標）
+
+本檔即完整任務。讀完按 §0→§6 執行。
+不要等使用者再補「先讀 03_1」「不要改規則」「不要套用」。
+
+============================================================
+0. 執行契約
+============================================================
+
+讀並遵循 Skills/diff-change-workflow/SKILL.md
+（路徑略有出入則在 Skills/ 搜 diff-change）。找不到 skill：停止，不准改程式。
+
+只做到 Step C，然後停止：
+
+  A  讀準據與現況，必要時寫 Reports/05_UserCoords.md（短即可）
+  B  可 reverse 的 unified diff → Prompts/patches/
+  C  貼 diff、apply／reverse，問「可以套用？」
+
+未得到「可以套用」前禁止改工作樹。禁止先改碼再補 diff。
+
+禁止 reverse
+- 04 提子、04_2 顯示同步、04_3～04_5 painter／tooltip／滾輪
+本 diff 須能單獨 reverse，且不退回那些行為。
+
+============================================================
+1. 準據（必讀，不要另發明一套數字）
+============================================================
+
+必讀
+- Plans/03_1_UserCoords.md          # 顯示座標 SSOT
+- Plans/03_P2_Capture.md            # 規則與測試向量維持內部 0..3
+- 現況 Message／著手紀錄如何印點（ui/controller.js 的 fmtPoint 或等價）
+- client/core/state.js、rules.js（確認 play 吃內部座標）
+- client/render/board3d.js 的 worldOf、pickAtClient（維持內部）
+
+03_1 已批准、不可改掉：
+
+- 兩層座標：禁止把顯示座標當 board[] 下標
+- N=4 一軸：內部 0 1 2 3 ↔ 顯示 -3 -1 1 3
+  user  = 2 * index - (N - 1)       # 2*index - 3
+  index = (user + (N - 1)) / 2      # 必須整除且 ∈ [0,N)
+- 可下點 = {-3,-1,1,3}³；(0,0,0) 不能下
+- 顯示六鄰是 ±2 沿一軸；程式 flood fill 仍只用內部 DIRS ±1
+- 奇數 N 只預告不實作
+- worldOf／CELL／球半徑不為了標籤而改
+- Rules.play／picking 只吃內部 index
+- P2 rules_cases 座標維持 0..3，不要改成 ±1±3
+
+============================================================
+2. 本 Phase 做／不做
+============================================================
+
+做
+- 新增薄模組（建議 client/core/coords.js，insert／專頁要能載入）
+    GoGame.Coords.toUser(ix, iy, iz) -> {x, y, z}
+    GoGame.Coords.fromUser(x, y, z) -> {ix, iy, iz} | null
+    GoGame.Coords.formatUser(...)     # 給 Message／log，例如 (1,-1,3)
+- UI 給人看的座標全部改顯示制：Message、著手紀錄、必要時 hover
+- picking／Rules.play：先內部，印出來再 toUser
+- fromUser 非法（0,0,0、偶數、非整、越界）回 null，不得寫進 board
+- AGENTS.md／README.md 加一句：內部 vs 顯示，指向 03_1
+- 若專頁 GO_SCRIPTS／AutoLoad 要加 go_coords.js：可改 gogame.htm 與
+  必要時 GoGame.cpp AutoLoad 字串；不改 SetSV.C 契約
+
+不做
+- 改 board[z][y][x] 形狀或改用負下標
+- 改提子／自殺／劫／ended
+- 改 worldOf、CELL、球半徑、格線幾何
+- 軸上刻字（可列「未做」；非本 Phase 必做）
+- SGF、計分、死子、領地、切層 2D
+- Firefox New Game 相機
+- 為座標去動 extras／tooltip／滾輪（04_2～04_5 保持）
+
+============================================================
+3. 檔案分派
+============================================================
+
+預期新檔
+- Program_Go/GoGame/client/core/coords.js
+
+預期改
+- client/ui/controller.js          # fmtPoint／log／Message
+- GoGame/html/gogame.htm           # 載入 go_coords.js（在 state／ui 能用到之前）
+- 若 insert_files 仍是部署來源：Launcher/insert_files/GoGame_files.txt 加一行
+- AGENTS.md、README.md 短句
+
+視讀碼
+- render/controller.js、board3d.js 若有對人印內部座標的字
+- 測試：可加 coords 對照表小測試；rules_cases 禁止改用顯示座標
+
+不改
+- rules.js 的 play 簽名（仍 ix,iy,iz）
+- board2d.js（仍不載入）
+- scoring.js／sgf.js
+- SetSV.C
+
+============================================================
+4. Step B — patch
+============================================================
+
+建議：
+  已移除（原 Prompts/patches/05_P3_UserCoords_semantic.diff）
+可再拆 coords.js 為新檔 patch，但要有總清冊。
+必須：git apply --whitespace=nowarn 與 git apply -R --whitespace=nowarn。
+
+============================================================
+5. Step C
+============================================================
+
+回覆含：skill 路徑、對照表是否與 03_1 一字不差、
+哪些 UI 改印顯示座標、patch 路徑、apply／reverse、diff 原文、
+問：是否可以套用？
+然後停止。
+
+============================================================
+6. 套用後手動驗收（給使用者）
+============================================================
+
+1. New Game 後下內部會是 (0,0,0) 的角 → Message／紀錄應為 (-3,-3,-3)。
+2. 距中心最近的可下點應印成 (±1,±1,±1) 之一，不是 (1,1,1) 當內部。
+3. 不能在 UI 上把 (0,0,0) 當可下點（本來就沒有該格點）。
+4. 提子／自殺／劫／Undo／滾輪／左鍵轉右鍵移／capture 球消失：與 04.x 相同。
+5. 控制台 rules_cases 仍用內部向量且 PASS。
+6. 不必驗 SGF／計分。

@@ -1,0 +1,202 @@
+環境聲明
+GrokBuild 在 podman 容器內。禁止再 docker / podman 套遊戲映像。
+不能開瀏覽器就改碼；不能以「打不開頁面」為由改架構。
+驗收寫成手動步驟，不要假裝已在瀏覽器點過。
+不要把公開模組函式講成網路 API。
+
+工作目錄：SpatialGo
+本 Prompt：02
+階段：P1 Apply — 先 diff、等人採用才改工作樹
+
+範圍（只做已批准的）
+  Plans/01_P1_SpatialGo_4x4x4.md
+  已移除（原 Prompts/01_1_P1_Plan_Approval.md）的 §2–§3
+一句話：1 批准；2 主方案；3 (a) 不載入；舊 board2d 先留檔當 reference，
+未來若做切層 2D 是新模組不是重開舊盤。
+
+============================================================
+0. 開頭必做：確認 diff 整理 skill
+============================================================
+
+02 一開始先找並遵循既有技能，不要自創另一套流程。
+
+預期路徑：Skills/diff-change-workflow/SKILL.md
+若目錄名略有出入，在 Skills/ 內搜 diff-change。
+若有改 GoGame.cpp AutoLoad：對一下 Skills/thttpserver-integration/SKILL.md
+（P1 幾乎不碰 C++；不新開 class、不改 SetSV.C）。
+
+報告必須寫明：
+
+1. skill 有找到還是沒找到（完整路徑）。
+2. 若有：列出該 skill 要求的步驟
+   （先列改動 → 寫 unified diff → 等人採用才 apply → 可 reverse），
+   並聲明後續照做。
+3. 若沒有：停止發明替代流程，在報告裡問使用者要沿用
+   已移除的平面 diff 習慣，還是補 skill；
+   未回覆前不准改程式。
+
+本專案 skill 要求（找到後必須遵守）：
+
+  Step A  Plan 摘要（本 P1 Plan 已批准，此步只對齊檔案清單與 move/semantic 拆分）
+  Step B  產出 unified diff 到 Prompts/patches/（含檔頭）
+  Step C  等待批准（未得到「可以套用」前禁止改工作樹）
+  Step D  依序號小→大 apply
+  Step E  需要時大→小 reverse；.diff 留在 Prompts/patches/，套完不刪
+
+無 pure move 時可只產 semantic，檔頭註明「無 move」。
+P1 這次是語意改寫（state／rules／3D 立方格），預期沒有跨檔純搬移。
+
+============================================================
+1. 採用前／採用後（必須遵守）
+============================================================
+
+採用前（未得到「可以套用」前禁止改 Program_Go、Launcher、HTML、AGENTS、README）：
+
+- 列出將改檔案與各檔要做的事（對齊 Plan §7 + 01_1 §2–§3）。
+- 產出 unified diff，放到工作區 Prompts/patches/
+  建議：
+    已移除（原 Prompts/patches/02_P1_Apply_SpatialGo_4x4x4_02_semantic.diff）
+  （可按檔拆，但要有一份總清冊。）
+- 每個 patch 必須可用
+    git apply --whitespace=nowarn
+    git apply -R --whitespace=nowarn
+  （或 skill 規定的 reverse）撤銷。
+- 在 diff 檔頭寫清：新檔／刪檔／只改哪些函式。
+- P1 不刪 board2d.js。不把它改成 stub。
+- 回覆中完整貼出每個 diff 原文（skill 要求），並列 apply／reverse 指令。
+- 然後停止，用明確問句請使用者「可以套用？」
+
+採用後才：
+
+- 按 skill 小→大 apply。
+- 留下 apply 紀錄（哪個 patch、是否成功）。
+- reverse 所需的 .diff 留在 Prompts/patches/。
+
+禁止：未批准直接改 Program_Go；先改碼再補 diff；沒有對應 patch 就 apply；
+做不可逆刪檔（含舊 board2d.js）。
+
+============================================================
+2. 產品鎖定（不得改掉）
+============================================================
+
+立體空間圍棋，不是平面盤加 z，不是平面 Go 的 3D 視圖。
+
+- 只做 4×4×4；board[z][y][x]；SIZE=4
+- 六鄰資料可先寫進 DIRS；P1 play 只拒越界與佔格
+- 只有 3D：透明立方格 + 3D 棋子；沒有平面棋盤樣子；沒有 2D／3D 切換
+- 規則在瀏覽器 JS；ProgramGo_SV 純殼
+- 專頁 /gogame/gogame.htm 唯一遊玩面；殼 GoBoard 只開專頁
+
+沿用
+- extras：同一 TGeoPainter；高 numfaces／numnodes；暫時 wrap drawExtraShape 後立刻還原
+- Reset：相機歸位後高上限再掛子；禁止常駐 drawExtraShape；禁止亂改 select_in_view
+- 加子／Undo 同一條依 state 全量重建 extras
+- 不要每手 nvidia-smi；不要裸 TGeoBBox 當唯一 JSROOT.draw
+- 不要假設 THREE.BoxGeometry 是 constructor
+
+不要（P1 與尚未批准）
+- 提子、自殺禁、劫、Pass／Resign 當可玩流程
+- SGF、計分、死子、領地
+- 切層 2D、層選 UI、一次畫多層 2D
+- 刪除 board2d.js／sgf.js／scoring.js
+- 新 C++ class、改 SetSV 邊界、套遊戲映像
+- 射線 ∩ 平面 z=0 當 picking
+- 木質 slab 當棋盤
+- 為「以後可能有 2D」去實作切層
+
+============================================================
+3. board2d（01_1 §2，P1 必須照做）
+============================================================
+
+| 動作 | P1 |
+|------|----|
+| 專頁 gogame.htm 的 GO_SCRIPTS | 不列入 go_board2d |
+| Render／UI | 只 Board3D.mount |
+| view_mode | 固定 3D；setMode('2d') 忽略或強制 3d |
+| 刪除 board2d.js | 先不刪 |
+| 改成 no-op stub | 不做 |
+| insert_files 仍 copy 舊檔 | 可維持不改清單；能載入 ≠ 允許 mount |
+
+舊 board2d.js 是平面圍棋 TLine 盤，不是立體棋切層視圖。
+未來切層 2D 若要做：另開 Plan、新模組（例如 board_slices2d.js），
+不是重開 Board2D.mount。
+
+============================================================
+4. Apply 時一併鎖定（01_1 §3）
+============================================================
+
+1. worldOf(x,y,z) 只定義一次；格線、空點淡標記、球心、picking 全用它。
+   worldOf(x,y,z) = (x-1.5, y-1.5, z-1.5)；CELL=1；球心在格點；R≈0.32。
+2. 相機 up 軸／framing 沿用現況 board3d 的 painter，不要另發明 Y-up／Z-up。
+3. 建議做 GoGame.cpp AutoLoad 拿掉 board2d、sgf／scoring cases
+   （以及專頁不載的平面測試），避免開殼誤跑平面測試。
+   不改 SetSV.C；不新開 class。對 thttpserver-integration：只動 EnsureAutoLoad 字串。
+4. getGroup／getLiberties 若 P1 就改六鄰：可以；不要順便把提子／自殺／劫當 P1 必過。
+5. 空點 TPolyMarker3D 畫不出來不卡關；picking 主方案不依賴它。
+6. P1 可繼續 clearDom + 全量重建 extras（64 子）；不要做第二套增量 mesh 真相源。
+
+Picking（已選主方案）
+- 相機射線（Raycaster 或現況 rayFromCameraNdc）對 64 格點吸附
+- dist ≤ 0.45；平手取較小 t（靠鏡頭）
+- 回傳 {x,y,z}；不依賴 BoxGeometry；不改 JSROOT 核心
+- 備案本 Phase 不做（除非主方案在實機系統性偏格；P1 apply 不要先做備案）
+
+呈現
+- 先畫立方體 12 邊（完整 AABB），再三軸格線 TPolyLine3D
+- 空點極淡 TPolyMarker3D（失敗不卡關）
+- 子：TEveGeoShapeExtract + TGeoSphere extras；建樹 z,y,x；高 numfaces
+- 禁止 J.draw(stones) 當第二個 main
+
+Rules P1
+- play(state,x,y,z)／isLegal：只拒越界與非空
+- history 含 z；Undo 走 State.undo + 3D redraw
+- UI：Pass／Resign 隱藏或 disabled
+
+============================================================
+5. 將改檔案（對齊 Plan §7；無新檔則不要為了拆檔而拆）
+============================================================
+
+必改（semantic）
+- Program_Go/GoGame/client/core/state.js
+- Program_Go/GoGame/client/core/rules.js
+- Program_Go/GoGame/client/render/board3d.js
+- Program_Go/GoGame/client/render/view_mode.js
+- Program_Go/GoGame/client/render/controller.js
+- Program_Go/GoGame/client/ui/controller.js
+- Program_Go/GoGame/client/loader/go_loader.js
+- Program_Go/GoGame/html/gogame.htm
+- Program_Go/GoGame/client/tests/rules_cases.js
+- AGENTS.md
+- README.md
+
+建議改
+- Program_Go/GoGame/GoGame.cpp          # AutoLoad 拿掉 board2d 與會炸的平面 cases
+- client/tests/sgf_cases.js
+- client/tests/scoring_cases.js
+- client/tests/budget_cases.js          # runAll 遇 3D state 則 skip
+
+不改
+- board2d.js（留檔、不 stub、不 mount）
+- SetSV.C、insert_files/GoGame_files.txt（能 copy ≠ 允許 mount）
+- scoring.js、sgf.js、budget.js 邏輯
+- 不刪上述延後模組
+
+Skills/go-game-state 等可在同一 semantic 堆疊末段對齊 4×4×4／六鄰／僅 3D，
+或列為 apply 後立刻跟的小 diff；不要讓 skill 內文繼續要求 19 路 2D 主盤當產品驗收。
+thttpserver-integration：僅當 AutoLoad 字串變更時改對應段落；禁止改 SetSV 契約。
+
+============================================================
+6. 交付與結束
+============================================================
+
+第一次執行本 Prompt（採用前）結束條件：
+- 報告寫明 skill 路徑與步驟
+- Prompts/patches/ 有可 reverse 的 unified diff + 總清冊
+- 回覆列出 apply／reverse 指令
+- 問：是否可以套用？
+- 未得到「可以套用」則停止，不改工作樹
+
+若使用者在同一 Prompt 已明確說可以套用：才 Step D，並留下 apply 紀錄。
+
+手動驗收（套用後由使用者自己開專頁；寫進回覆即可，不要假裝點過）：
+見 Plans/01_P1_SpatialGo_4x4x4.md §9。
