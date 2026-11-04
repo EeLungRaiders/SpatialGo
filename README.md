@@ -45,7 +45,30 @@ Export and load use a Go3D JSON record. An observation window fades intersection
 
 匯出與載入使用 Go3D JSON 棋譜。觀察窗會把裁切範圍外的交叉點淡出。這個視窗只供觀看，不會寫進棋譜。
 
+## Reference
 
+`Plans/` holds the phase plans.
 
+`Plans/` 放階段計畫。
+
+`Prompts/` holds the instructions given to GrokBuild.
+
+`Prompts/` 放給 GrokBuild 的指示。
+
+`Reports/` holds evaluations and debugging records.
+
+`Reports/` 放評估與除錯紀錄。
+
+`Skills/` holds modular development notes.
+
+`Skills/` 放模組化開發說明。
+
+`Doc/` holds the architecture and the notes from the development process.
+
+`Doc/` 放開發過程的架構與說明。
+
+Read the folders above when you want to see how the project was developed. To build the image, start the server, and play, follow the earlier sections.
+
+想看開發過程，請見上述資料夾。建置映像、啟動伺服器與開始遊玩，請看前面的章節。
 
 *SpatialGo was produced with GrokBuild.*
